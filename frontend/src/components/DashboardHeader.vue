@@ -1,53 +1,64 @@
 <template>
-  <div class="header">
-    <div class="header-title">
-      Gitaction Board
-    </div>
-    <div id="sub-header">
-      {{ subHeader }}
-    </div>
-  </div>
-  <div class="separator" />
+  <v-app-bar
+    elevation="5"
+  >
+    <v-row no-gutters>
+      <v-col cols="10">
+        <v-app-bar-title
+          class="header-title text-center font-weight-bold pl-10"
+        >
+          <span>Gitaction Board</span> <span class="version">(v{{ version }})</span>
+        </v-app-bar-title>
+      </v-col>
+      <v-col
+        cols="2"
+        class="d-inline-flex"
+      >
+        <v-app-bar-title
+          id="sub-header"
+          class="pr-4 text-right font-weight-bold align-center fill-height d-inline-flex flex-row-reverse mt-3"
+        >
+          {{ subHeader }}
+        </v-app-bar-title>
+      </v-col>
+    </v-row>
+  </v-app-bar>
 </template>
 
 <script>
+import { getVersion } from '@/services/utils';
+
 export default {
-  name: "DashboardHeader",
+  name: 'DashboardHeader',
   props: {
     subHeader: {
       type: String,
       required: true
     }
+  },
+  data() {
+    return {
+      version: getVersion()
+    };
   }
-}
+};
 </script>
 
 <style scoped>
-.header {
-  height: 6%;
-  color: #5b5454;
+.header-title {
+    line-height: normal;
+    font-size: 50px;
+    font-family: "Snell Roundhand", cursive;
 }
 
-.header-title {
-  font-size: 50px;
-  text-align: center;
-  font-family: "Snell Roundhand", cursive;
-  font-weight: bold;
+.version {
+    font-size: 15px;
+    font-family: "American Typewriter", serif;
 }
 
 #sub-header {
-  z-index: auto;
-  text-align: end;
-  margin-top: -2%;
-  font-size: 20px;
-  font-weight: bold;
-  font-family: "American Typewriter", serif;
-}
-
-.separator {
-  height: 0;
-  border: 1px solid #5b5454;
-  margin-bottom: 35px;
+    font-size: 20px;
+    font-family: "American Typewriter", serif;
 }
 
 </style>

@@ -1,36 +1,23 @@
 <template>
-  <div
-    :id="content.name"
-    :key="content.name"
-    :class="[getBuildAndActivityStatus(content)]"
-  >
-    <div class="job-name">
-      <a
-        :id="content.name + '_url'"
-        :href="content.webUrl"
-        target="_blank"
-      >
-        {{ content.name }}
-      </a>
-    </div>
-    <div class="buttons">
-      <button
-        class="hide-button"
-        :title="hidden ? 'Show' : 'Hide'"
-        @click="$emit('toggleVisibility', content.name)"
-      >
-        <HideOrShowIcon :display-hide-button="!hidden" />
-      </button>
-    </div>
-  </div>
+  <GridCell
+    :last-executed-time="content.lastBuildTime"
+    :url="content.webUrl"
+    :name="content.name"
+    display-toggle-visibility
+    :show-relative-time="showRelativeTime"
+    :append-class-names="classNames"
+    :hidden="hidden"
+    @toggle-visibility="toggleVisibility"
+  />
 </template>
 
 <script>
-import HideOrShowIcon from "@/icons/HideOrShowIcon";
+
+import GridCell from '@/components/GridCell.vue';
 
 export default {
-  name: "Job",
-  components: {HideOrShowIcon},
+  name: 'Job',
+  components: { GridCell },
   props: {
     content: {
       type: Object,
@@ -42,15 +29,18 @@ export default {
     }
   },
   emits: ['toggleVisibility'],
-  methods: {
-    getBuildAndActivityStatus(job) {
-      const lastBuildStatusIndicator = this.getBuildStatus(job.lastBuildStatus);
-      return job.activity === "Building" ?
-          `job ${lastBuildStatusIndicator} building` :
-          `job ${lastBuildStatusIndicator}`;
+  computed: {
+    showRelativeTime() {
+      const { activity, lastBuildStatus } = this.content;
+      return activity !== 'Building' && lastBuildStatus !== 'Success';
     },
-    getBuildStatus(status) {
-      switch (status) {
+    classNames() {
+      return this.content.activity === 'Building'
+        ? `${this.buildStatusIndicator} building`
+        : `${this.buildStatusIndicator}`;
+    },
+    buildStatusIndicator() {
+      switch (this.content.lastBuildStatus) {
         case 'Success':
           return 'success';
         case 'Unknown':
@@ -59,84 +49,14 @@ export default {
           return 'failure';
       }
     }
+  },
+  methods: {
+    toggleVisibility(key) {
+      this.$emit('toggleVisibility', key);
+    }
   }
-}
+};
 </script>
 
 <style scoped>
-.job-name {
-  color: white;
-  font-weight: bold;
-  font-size: 14px;
-  overflow: auto;
-  display: inline-grid;
-  align-items: center;
-  flex-grow: 1;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-.job {
-  box-shadow: 5px 5px 10px #777;
-  border-radius: 6px;
-  height: 90px;
-  border: 2px solid #000;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-}
-
-.success {
-  background-color: #3a964a;
-}
-
-.failure {
-  background-color: #e23d2c;
-}
-
-.unknown {
-  background-color: #6d6a6a;
-}
-
-.job.building.success {
-  background-image:
-    repeating-linear-gradient(
-      135deg,
-      #3a964a 30px,
-      #000 50px
-    );
-}
-
-.job.building.failure {
-  background-image:
-    repeating-linear-gradient(
-      135deg,
-      #e23d2c 30px,
-      #000 50px
-    );
-}
-
-.job.building.unknown {
-  background-image:
-    repeating-linear-gradient(
-      135deg,
-      #6d6a6a 30px,
-      #000 50px
-    );
-}
-
-.buttons {
-  display: flex;
-  flex-direction: row-reverse;
-}
-
-.hide-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
 </style>

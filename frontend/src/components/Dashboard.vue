@@ -1,40 +1,23 @@
 <template>
-  <template v-if="loading">
+  <v-container
+    v-if="loading"
+    id="spinner-container"
+    class="justify-center fill-height spinner-container"
+  >
     <Spinner />
-  </template>
+  </v-container>
 
   <template v-if="!loading">
-    <div class="content-container">
-      <template
-        v-for="content in visibleContents"
-        :key="content"
-      >
-        <component
-          :is="contentDisplayer"
-          :content="content"
-          :hidden="isHidden(content)"
-          @toggle-visibility="toggleVisibility"
-        />
-      </template>
-    </div>
-    <div
-      v-if="hiddenContents.length > 0"
-      class="hidden-elements"
+    <v-container
+      v-if="visibleContents.length > 0"
+      fluid
     >
-      <hr>
-      <span>{{ hiddenContents.length }} hidden {{ nameOfItems }}</span>
-      <button
-        class="hidden-buttons"
-        @click="toggleHiddenElements()"
+      <v-row
+        dense
+        class="grid-cells"
       >
-        {{ showHiddenElements ? 'Hide' : 'Show' }}
-      </button>
-      <div
-        v-if="showHiddenElements"
-        class="content-container"
-      >
-        <template
-          v-for="content in hiddenContents"
+        <v-col
+          v-for="content in visibleContents"
           :key="content"
         >
           <component
@@ -43,27 +26,74 @@
             :hidden="isHidden(content)"
             @toggle-visibility="toggleVisibility"
           />
-        </template>
-      </div>
-    </div>
+        </v-col>
+      </v-row>
+    </v-container>
+    <v-container
+      v-if="hiddenContents.length > 0"
+      fluid
+    >
+      <v-toolbar :test-id="`${contentDisplayer.toLowerCase()}-hidden-contents-tool-bar`">
+        <v-toolbar-title>{{ hiddenContents.length }} hidden {{ nameOfItems }}</v-toolbar-title>
+        <v-spacer />
+        <v-tooltip :text="`${showHiddenElements? 'Collapse hidden elements':'Show hidden elements'}`">
+          <template #activator="{ props }">
+            <v-btn
+              icon
+              v-bind="props"
+            >
+              <v-icon
+                :test-id="`${contentDisplayer.toLowerCase()}-hidden-contents-tool-bar-icon`"
+                :icon="`mdi-${showHiddenElements? 'eye-off': 'eye'}`"
+                @click="toggleHiddenElements"
+              />
+            </v-btn>
+          </template>
+        </v-tooltip>
+      </v-toolbar>
+      <v-container
+        v-if="showHiddenElements"
+        fluid
+        class="px-0"
+      >
+        <v-row
+          dense
+          class="grid-cells"
+        >
+          <v-col
+            v-for="content in hiddenContents"
+            :key="content"
+          >
+            <component
+              :is="contentDisplayer"
+              :content="content"
+              :hidden="isHidden(content)"
+              @toggle-visibility="toggleVisibility"
+            />
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-container>
+    <NoFailures v-if="contents.length === 0" />
+    <MaxIdleTimeoutOverlay v-if="stoppedAutoRefresh" />
   </template>
-  <NoFailures v-if="!loading && contents.length === 0" />
 </template>
 
 <script>
-import NoFailures from "@/components/Happy";
-import Spinner from "@/components/Spinner";
-import Job from "@/components/Job";
-import GridCell from "@/components/GridCell";
-import preferences from "@/services/preferences";
+import NoFailures from '@/components/NoFailures';
+import Spinner from '@/components/Spinner';
+import Job from '@/components/Job';
+import FailureGridCell from '@/components/FailureGridCell.vue';
+import preferences from '@/services/preferences';
+import MaxIdleTimeoutOverlay from '@/components/MaxIdleTimeoutOverlay';
 
 const ONE_MINUTE = 60000;
 
 export default {
-  name: "Dashboard",
-  components: {NoFailures, Spinner, Job, GridCell },
+  name: 'Dashboard',
+  components: { MaxIdleTimeoutOverlay, NoFailures, Spinner, Job, FailureGridCell },
   props: {
-    disableMaxIdleTime: {
+    enableMaxIdleTimeOptimization: {
       type: Boolean,
       required: true
     },
@@ -98,26 +128,27 @@ export default {
       idleTime: 0,
       renderPageTimer: null,
       idleTimer: null,
-      showHiddenElements: false
-    }
+      showHiddenElements: false,
+      stoppedAutoRefresh: false
+    };
   },
   computed: {
     visibleContents() {
-      return this.contents.filter(this.isVisible)
+      return this.contents.filter(this.isVisible);
     },
     hiddenContents() {
-      return this.contents.filter(this.isHidden)
+      return this.contents.filter(this.isHidden);
     }
   },
   mounted() {
-    if (!this.disableMaxIdleTime) {
+    if (this.enableMaxIdleTimeOptimization) {
       this.initiateIdleTimer();
     }
     this.renderPage().then(() => {
       this.loading = false;
       this.renderPageTimer = setInterval(this.renderPage, 5000);
     });
-    this.hiddenElements = preferences.hiddenElements[this.nameOfItems] || []
+    this.hiddenElements = preferences.hiddenElements[this.nameOfItems] || [];
   },
   beforeUnmount() {
     clearInterval(this.renderPageTimer);
@@ -133,15 +164,13 @@ export default {
       window.onkeypress = this.resetTimer;
     },
     renderPage() {
-      if (this.disableMaxIdleTime) {
+      if (!this.enableMaxIdleTimeOptimization) {
         return this.fetchData();
       }
       if (this.maxIdleTime >= this.idleTime) return this.fetchData();
       clearInterval(this.renderPageTimer);
       clearInterval(this.idleTimer);
-      const message = "Stopped auto page re-rendering due to max idle timeout";
-      console.warn(message);
-      alert(message);
+      this.stoppedAutoRefresh = true;
     },
     incrementIdleTime() {
       this.idleTime++;
@@ -153,11 +182,13 @@ export default {
     },
     fetchData() {
       return this.fetchContents()
-          .then((contents) => this.contents = contents)
-          .catch((reason) => {
-            console.error(reason);
-            return Promise.reject(reason);
-          });
+        .then(contents => {
+          this.contents = contents;
+        })
+        .catch((reason) => {
+          console.error(reason);
+          return Promise.reject(reason);
+        });
     },
     toggleVisibility(key) {
       const indexIfThisKeyIsHidden = this.hiddenElements.indexOf(key);
@@ -166,53 +197,28 @@ export default {
       } else {
         this.hiddenElements.push(key);
       }
-      preferences.hiddenElements = {...preferences.hiddenElements, [this.nameOfItems]: this.hiddenElements}
+      preferences.hiddenElements = { ...preferences.hiddenElements, [this.nameOfItems]: this.hiddenElements };
     },
     isVisible(content) {
-      return !this.isHidden(content)
+      return !this.isHidden(content);
     },
     isHidden(content) {
-      return this.hideByKey && this.hiddenElements.indexOf(content[this.hideByKey]) !== -1
+      return this.hideByKey && this.hiddenElements.indexOf(content[this.hideByKey]) !== -1;
     },
     toggleHiddenElements() {
-      this.showHiddenElements = !this.showHiddenElements
+      this.showHiddenElements = !this.showHiddenElements;
     }
   }
-}
+};
 </script>
 
 <style scoped>
-.content-container {
-  font-family: OpenSans, sans-serif;
-  display: grid;
-  align-items: center;
-  grid-template-rows: repeat(auto-fit, minmax(90px, 115px));
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  grid-gap: 10px;
-  width: 100%;
+.spinner-container {
+    height: 90vh !important;
 }
 
-.hidden-elements {
-  margin-top: 3em;
-  margin-bottom: 1em;
-  font-weight: bold;
-  color: #333;
+.grid-cells {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
-
-.hidden-buttons {
-  border-radius: 12px;
-  color: #fff;
-  background-color: #3a964a;
-  font-size: 15px;
-  margin-left: 5px;
-
-  /* padding: 3px 8px; */
-  width: 60px;
-  height: 30px;
-}
-
-.hidden-buttons:hover {
-  cursor: pointer;
-}
-
 </style>

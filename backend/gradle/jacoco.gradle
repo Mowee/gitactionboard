@@ -1,9 +1,5 @@
 apply plugin: 'jacoco'
 
-jacoco {
-    toolVersion = "0.8.7"
-}
-
 def excludes = [
         "de/otto/platform/gitactionboard/adapters/service/notifications/NoOpsNotificationsConnector.class"
 ]
@@ -14,9 +10,9 @@ def jacocoExecutionDataFiles = fileTree(buildDir)
 
 jacocoTestReport {
     reports {
-        xml.enabled false
-        html.enabled true
-        csv.enabled false
+        xml.required = false
+        html.required = true
+        csv.required = false
     }
 
     dependsOn integrationTest

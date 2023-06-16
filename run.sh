@@ -24,8 +24,10 @@ commands:
   docker-build                                         Build docker image
   build-jar                                            Build executable boot jar file
   talisman-verify                                      Verify no sensitive information is committed using talisman
-  bump-version <major|minor|patch>                     Release a new <major|minor|patch> version
+  trivy-verify                                         Verify there is no vulnerability in docker image
+  bump-version                                         Release a new version
   copy-frontend                                        Build and copy the frontend code base to backend resources folder
+  frontend-build-for-github-pages                      Build frontend for GitHub pages
   generate-changelog                                   Generate changelog from last tag and write in CHANGELOG.md
   generate-changelog-url [tag]                         Generate changelog url for given tag
   add-contributor <username> <contribution type>       Add new contributor to contributors list
@@ -46,8 +48,10 @@ case ${CMD} in
   backend-test) _test "backend";;
   frontend-test) _test "frontend";;
   docker-build) _docker_build ;;
+  frontend-build-for-github-pages) _frontend_build_for_github_pages ;;
   talisman-verify) _talisman_verify ;;
-  bump-version) _bump_version "${1}" ;;
+  trivy-verify) _trivy_verify ;;
+  bump-version) _bump_version ;;
   copy-frontend) _copy_frontend ;;
   generate-changelog) _generate_changelog ;;
   add-contributor) _add_contributor "${1}" "${2}" ;;

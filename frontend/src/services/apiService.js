@@ -1,12 +1,9 @@
-const {
-  fetchAccessToken,
-  clearCookies,
-} = require("@/services/authenticationService");
+import { clearCookies, fetchAccessToken } from '@/services/authenticationService';
 
 const validate = (res) => {
   if (!res.ok && res.redirected) {
     clearCookies();
-    window.location.assign("#/login");
+    window.location.assign('#/login');
   }
 
   return res.ok ? Promise.resolve(res) : Promise.reject(res);
@@ -28,29 +25,31 @@ const fetchJsonContent = (url, authToken) => {
     headers: new Headers(
       marshalHeaders({
         Authorization: authToken,
-        Accept: "application/json",
+        Accept: 'application/json'
       })
-    ),
+    )
   })
     .then(validate)
     .then((res) => res.json());
 };
 
-export const fetchConfig = () => fetchJsonContent("./config");
+export const fetchConfig = () => fetchJsonContent(preparePath('/config'));
 
 export const fetchCctrayJson = () =>
-  fetchJsonContent("./v1/cctray", fetchAccessToken());
+  fetchJsonContent(preparePath('/v1/cctray'), fetchAccessToken());
 
 export const fetchSecretAlerts = () =>
-  fetchJsonContent("./v1/alerts/secrets", fetchAccessToken());
+  fetchJsonContent(preparePath('/v1/alerts/secrets'), fetchAccessToken());
 
 export const fetchCodeStandardViolations = () =>
-  fetchJsonContent("./v1/alerts/code-standard-violations", fetchAccessToken());
+  fetchJsonContent(preparePath('/v1/alerts/code-standard-violations'), fetchAccessToken());
 
 export const authenticate = (username, password) => {
-  return fetch("./login/basic", {
-    method: "POST",
-    headers: new Headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ username, password }),
+  return fetch(preparePath('/login/basic'), {
+    method: 'POST',
+    headers: new Headers({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ username, password })
   }).then(validate);
 };
+
+export const preparePath = (url) => `${import.meta.env.VITE_PROXY_TARGET || '.'}${url}`;

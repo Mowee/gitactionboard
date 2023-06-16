@@ -1,59 +1,51 @@
 <template>
-  <div
+  <v-container
     v-if="isGithubCodeScanMonitoringEnabled"
-    id="container"
+    id="code-standard-violations-dashboard"
+    fluid
   >
     <DashboardHeader sub-header="Code Standard Violations" />
     <Dashboard
-      :disable-max-idle-time="disableIdleOptimization"
+      :enable-max-idle-time-optimization="enableMaxIdleTimeOptimization"
       :max-idle-time="maxIdleTime"
-      content-displayer="GridCell"
+      content-displayer="FailureGridCell"
       :fetch-contents="fetchContents"
     />
-  </div>
+  </v-container>
 </template>
 
 <script>
-import router from "@/router";
-import preferences from "@/services/preferences";
-import {getGithubCodeScanMonitoringEnabled} from "@/services/utils";
-import {fetchCodeStandardViolations} from "@/services/apiService";
-import Dashboard from "@/components/Dashboard";
-import DashboardHeader from "@/components/DashboardHeader";
+import router from '@/router';
+import preferences from '@/services/preferences';
+import { getGithubCodeScanMonitoringEnabled } from '@/services/utils';
+import { fetchCodeStandardViolations } from '@/services/apiService';
+import Dashboard from '@/components/Dashboard';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default {
-  name: "CodeStandardViolationsDashboard",
-  components: {DashboardHeader, Dashboard},
+  name: 'CodeStandardViolationsDashboard',
+  components: { DashboardHeader, Dashboard },
   computed: {
     currentPath() {
       return router.currentRoute.value.path;
     },
-    disableIdleOptimization(){
-      return preferences.disableIdleOptimization;
+    enableMaxIdleTimeOptimization() {
+      return preferences.enableMaxIdleTimeOptimization;
     },
-    maxIdleTime(){
+    maxIdleTime() {
       return preferences.maxIdleTime;
     },
-    isGithubCodeScanMonitoringEnabled(){
+    isGithubCodeScanMonitoringEnabled() {
       return getGithubCodeScanMonitoringEnabled();
     }
   },
   methods: {
     fetchContents() {
       return fetchCodeStandardViolations();
-    },
+    }
   }
-}
+};
 </script>
 
 <style scoped>
-#container {
-  height: 100%;
-  width: 95%;
-  padding-left: 30px;
-  padding-right: 30px;
-  overflow: scroll;
-  padding-bottom: 1px;
-}
-
 </style>

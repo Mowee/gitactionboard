@@ -1,225 +1,161 @@
 <template>
-  <div id="container">
-    <div class="preferences-container">
-      <div class="preference-header">
-        <ProfilePicture :small="false" />
-        <div class="text">
-          {{ name }}
-        </div>
-      </div>
-      <div class="preferences-data">
-        <div class="header">
-          Your current preferences:
-        </div>
-        <div class="preferences-body">
-          <div class="preferences-body-content">
-            <div>
-              Show healthy builds:
-              <input
-                v-model="showHealthyBuilds"
-                type="checkbox"
-                class="preferences-input-checkbox"
-              >
-            </div>
-          </div>
-
-          <div class="preferences-body-content">
-            <div>
-              Disable Max Idle Time:
-              <input
-                v-model="disableIdleOptimization"
-                type="checkbox"
-                class="preferences-input-checkbox"
-              >
-            </div>
-          </div>
-          <div
-            v-if="!disableIdleOptimization"
-            class="preferences-body-content"
+  <v-container
+    fluid
+    class="fill-height w-75 justify-center content-container"
+  >
+    <DashboardHeader sub-header="Preferences" />
+    <v-card
+      elevation="5"
+      class="w-50"
+    >
+      <v-container fluid>
+        <v-card-item class="pt-0 pb-0">
+          <v-switch
+            v-model="showHealthyBuilds"
+            label="Show healthy builds"
+            color="success"
+            hide-details
+            @update:model-value="modelValueUpdated"
+          />
+        </v-card-item>
+        <v-card-item class="pt-0 pb-0">
+          <v-switch
+            v-model="enableMaxIdleTimeOptimization"
+            label="Enable Maximum Idle Time Restriction"
+            color="success"
+            hide-details
+            @update:model-value="modelValueUpdated"
+          />
+        </v-card-item>
+        <v-card-item class="pt-0">
+          <v-text-field
+            v-model.number="maxIdleTime"
+            :disabled="!enableMaxIdleTimeOptimization"
+            hide-details
+            type="number"
+            step="1"
+            min="1"
+            label="Maximum Idle Time (minutes)"
+            @update:model-value="modelValueUpdated"
+          />
+        </v-card-item>
+        <v-card-item class="pt-0 pb-0">
+          <v-btn
+            :icon="themeIcon"
+            flat
+            @click="onThemeUpdate"
+          />
+          <v-label class="ps-2">
+            {{ theme === 'light' ? 'Light' : 'Dark' }} Theme
+          </v-label>
+        </v-card-item>
+        <v-card-item class="pt-0 pb-0">
+          <v-autocomplete
+            v-model="showBuildsDueToTriggeredEvents"
+            chips
+            closable-chips
+            label="Show Builds Due To"
+            multiple
+            variant="solo"
+            hide-selected
+            clearable
+            hide-no-data
+            :items="getAllPossibleTriggeredEvents"
+            @update:model-value="modelValueUpdated"
+          />
+        </v-card-item>
+        <v-divider class="mt-4 mb-2" />
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            color="success"
+            variant="elevated"
+            :disabled="isDisabled"
+            size="large"
+            @click="savePreferences"
           >
-            <div>
-              Maximum Idle Time (minutes):
-              <input
-                v-model="maxIdleTime"
-                type="number"
-                class="preferences-input"
-                min="0"
-              >
-            </div>
-          </div>
-          <div class="save-container">
-            <button
-              class="save"
-              :class="{disabled: isDisabled}"
-              :disabled="isDisabled"
-              @click="savePreferences"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+            Save
+          </v-btn>
+        </v-card-actions>
+      </v-container>
+    </v-card>
+  </v-container>
 </template>
 
 <script>
-import preferences from "@/services/preferences";
-import { getAvatarUrl, getName } from "@/services/authenticationService";
-import ProfilePicture from "@/components/ProfilePicture";
+import preferences from '@/services/preferences';
+import DashboardHeader from '@/components/DashboardHeader.vue';
+import { useTheme } from 'vuetify';
+import { getAllPossibleTriggeredEvents, getShowBuildsDueToTriggeredEvents } from '@/services/utils';
 
 export default {
-  name: "Preferences",
-  components: {ProfilePicture},
+  name: 'Preferences',
+  components: { DashboardHeader },
   data() {
+    const themeInstance = useTheme();
     return {
       showHealthyBuilds: preferences.showHealthyBuilds,
       maxIdleTime: preferences.maxIdleTime,
-      disableIdleOptimization: preferences.disableIdleOptimization,
-      saved: true
-    }
+      enableMaxIdleTimeOptimization: preferences.enableMaxIdleTimeOptimization,
+      themeInstance,
+      isDirty: false,
+      showBuildsDueToTriggeredEvents: getShowBuildsDueToTriggeredEvents()
+    };
   },
   computed: {
-    isDirty() {
-      return !(this.saved && this.showHealthyBuilds === preferences.showHealthyBuilds &&
-          this.maxIdleTime === preferences.maxIdleTime &&
-          this.disableIdleOptimization === preferences.disableIdleOptimization)
-    },
     isValid() {
       return this.maxIdleTime >= 0 && !isNaN(this.maxIdleTime);
     },
     isDisabled() {
-      return !(this.isDirty && this.isValid);
+      return !(this.isValid && this.isDirty);
     },
-    name() {
-      return getName();
-    }
-  },
-  watch: {
-    isDirty() {
-      this.saved = !this.isDirty
+    themeIcon() {
+      return this.theme === 'light' ? 'mdi-weather-sunny' : 'mdi-weather-night';
+    },
+    theme() {
+      return this.themeInstance.global.name;
+    },
+    getAllPossibleTriggeredEvents() {
+      return getAllPossibleTriggeredEvents();
     }
   },
   methods: {
+    onThemeUpdate() {
+      this.themeInstance.global.name = this.theme === 'light' ? 'dark' : 'light';
+      this.modelValueUpdated();
+    },
     savePreferences() {
-      preferences.disableIdleOptimization = this.disableIdleOptimization;
+      preferences.enableMaxIdleTimeOptimization = this.enableMaxIdleTimeOptimization;
       preferences.showHealthyBuilds = this.showHealthyBuilds;
       preferences.maxIdleTime = this.maxIdleTime;
+      preferences.theme = this.themeInstance.global.name;
+      preferences.showBuildsDueToTriggeredEvents = this.showBuildsDueToTriggeredEvents;
 
-      this.saved = true;
+      this.isDirty = false;
     },
-    getAvatarData() {
-      return getAvatarUrl()
+    modelValueUpdated() {
+      this.isDirty = !(this.themeInstance.global.name === preferences.theme &&
+          this.showHealthyBuilds === preferences.showHealthyBuilds &&
+            this.maxIdleTime === preferences.maxIdleTime &&
+            this.enableMaxIdleTimeOptimization === preferences.enableMaxIdleTimeOptimization &&
+          this.hasSameShowBuildsDueToTriggeredEvents());
+    },
+    hasSameShowBuildsDueToTriggeredEvents() {
+      const newPreferredTriggeredEvents = Object.keys(this.showBuildsDueToTriggeredEvents);
+      const preferredTriggeredEvents = preferences.showBuildsDueToTriggeredEvents;
+
+      if (preferredTriggeredEvents.length === 0 &&
+          newPreferredTriggeredEvents.length === getAllPossibleTriggeredEvents().length) { return true; }
+
+      return preferredTriggeredEvents.length === newPreferredTriggeredEvents.length &&
+        preferredTriggeredEvents.every((val, index) => val === newPreferredTriggeredEvents[index]);
     }
   }
-}
+};
 </script>
 
 <style scoped>
-#container {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
-  width: 100vw;
+.content-container {
+    height: 90vh !important;
 }
-
-.preferences-container {
-  width: 97.1vw;
-  margin-left: auto;
-}
-
-.preference-header {
-  background-color: #5f8d77;
-  width: 100%;
-  height: 30%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.text {
-  margin-top: 5px;
-  margin-bottom: 10px;
-  font-size: 25px;
-  /* stylelint-disable font-family-no-missing-generic-family-keyword */
-  font-family: "Apple Chancery";
-  /* stylelint-enable font-family-no-missing-generic-family-keyword */
-}
-
-.preferences-data {
-  width: fit-content;
-  margin-top: 15%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.header {
-  font-size: 35px;
-  /* stylelint-disable font-family-no-missing-generic-family-keyword */
-  font-family: "Apple Chancery";
-  /* stylelint-enable font-family-no-missing-generic-family-keyword */
-  color: black;
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.preferences-body {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.preferences-body-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 25px;
-  /* stylelint-disable font-family-no-missing-generic-family-keyword */
-  font-family: "Al Bayan";
-  /* stylelint-enable font-family-no-missing-generic-family-keyword */
-  color: #4f4d4d;
-}
-
-.preferences-input-checkbox {
-  margin-left: 10px;
-  margin-top: 11px;
-  margin-bottom: 11px;
-}
-
-.preferences-input {
-  font-size: 20px;
-  height: 23px;
-  width: 45px;
-  border: 1px transparent;
-  border-bottom: 1px solid black;
-}
-
-.save-container {
-  width: 40%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.save {
-  font-size: 25px;
-  /* stylelint-disable font-family-no-missing-generic-family-keyword */
-  font-family: "Al Bayan";
-  /* stylelint-enable font-family-no-missing-generic-family-keyword */
-  background-color: #3a964a;
-  color: #fff;
-  border-radius: 5px;
-  margin-top: 25px;
-  width: 100%;
-}
-
-.save:not(.disabled):hover {
-  cursor: pointer;
-}
-
-.save.disabled {
-  background-color: #4f4d4d;
-}
-
 </style>

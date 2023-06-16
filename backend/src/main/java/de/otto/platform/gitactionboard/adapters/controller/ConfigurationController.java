@@ -4,6 +4,7 @@ import de.otto.platform.gitactionboard.domain.AuthenticationMechanism;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import lombok.Builder;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,15 +18,18 @@ public class ConfigurationController {
   private final List<AuthenticationMechanism> authenticationMechanisms;
   private final Boolean secretsScanEnabled;
   private final Boolean codeScanEnabled;
+  private final String projectVersion;
 
   @Autowired
   public ConfigurationController(
       List<AuthenticationMechanism> authenticationMechanisms,
       @Qualifier("enableSecretsScanMonitoring") Boolean secretsScanEnabled,
-      @Qualifier("enableCodeScanMonitoring") Boolean codeScanEnabled) {
+      @Qualifier("enableCodeScanMonitoring") Boolean codeScanEnabled,
+      @Qualifier("projectVersion") String projectVersion) {
     this.authenticationMechanisms = authenticationMechanisms;
     this.secretsScanEnabled = secretsScanEnabled;
     this.codeScanEnabled = codeScanEnabled;
+    this.projectVersion = projectVersion;
   }
 
   @GetMapping(path = "/config")
@@ -34,14 +38,16 @@ public class ConfigurationController {
         .availableAuths(List.copyOf(authenticationMechanisms))
         .githubSecretsScanMonitoringEnabled(secretsScanEnabled)
         .githubCodeScanMonitoringEnabled(codeScanEnabled)
+        .version(projectVersion)
         .build();
   }
 
-  @lombok.Value
+  @Value
   @Builder
   public static class Config {
     List<AuthenticationMechanism> availableAuths;
     Boolean githubSecretsScanMonitoringEnabled;
     Boolean githubCodeScanMonitoringEnabled;
+    String version;
   }
 }

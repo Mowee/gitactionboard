@@ -1,6 +1,6 @@
 package de.otto.platform.gitactionboard.config.security;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -23,15 +23,7 @@ public class NoOpsWebSecurityConfig {
 
   @Bean
   public SecurityFilterChain permitAll(HttpSecurity http) throws Exception {
-    http.cors()
-        .disable()
-        .csrf()
-        .disable()
-        .formLogin()
-        .disable()
-        .authorizeRequests()
-        .anyRequest()
-        .permitAll();
+    http.cors().disable().formLogin().disable().authorizeHttpRequests().anyRequest().permitAll();
 
     return http.build();
   }

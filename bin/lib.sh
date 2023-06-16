@@ -52,7 +52,7 @@ _license_report() {
 }
 
 _test() {
-  prettier --check "**/*.{json,js,css,html}" "**/*.md"
+  prettier --check "**/*.{json,css,html}" "**/*.md"
 
   # shellcheck disable=SC2035
   shellcheck -x **/*.sh
@@ -71,6 +71,7 @@ _test() {
       _ensure_nvm
       npm install
       npm run lint
+      npm test
       popd >/dev/null || exit
   fi
 
@@ -93,7 +94,7 @@ _pitest() {
 }
 
 _format_sources() {
-  prettier --write "**/*.{json,js,css,html}" "**/*.md"
+  prettier --write "**/*.{json,css,html}" "**/*.md"
 
   # shellcheck disable=SC2035
   shellcheck -x **/*.sh
@@ -131,6 +132,8 @@ _build_jar() {
 _run_locally() {
   local with_frontend="${2}"
 
+  #!/bin/sh
+  # shellcheck disable=SC2317
   _revert() {
     if [ "${with_frontend}" ]; then
       pushd "${SCRIPT_DIR}/frontend" >/dev/null || exit
@@ -177,9 +180,12 @@ _talisman_verify() {
   fi
 }
 
-_bump_version() {
-  local bump_component="${1}"
+_trivy_verify() {
+  _docker_build
+  trivy image "docker.io/library/${SERVICE_NAME}:${REVISION}" --severity HIGH,CRITICAL,MEDIUM --security-checks vuln --ignore-unfixed
+}
 
+_bump_version() {
   _revert() {
     rm -rf "backend/.git"
   }
@@ -187,7 +193,7 @@ _bump_version() {
   pushd "backend" >/dev/null || exit
     _ensure_jenv
     trap _revert SIGTERM SIGINT ERR
-    jenv exec ./gradlew tag -Prelease -PbumpComponent="${bump_component}" -Dmessage="$(git log -1 --format=%s)"
+    jenv exec ./gradlew tag -Prelease -Dmessage="$(git log -1 --format=%s)"
     _revert
   popd >/dev/null || exit
 }
@@ -203,7 +209,7 @@ _generate_contributors_list() {
 }
 
 _generate_changelog() {
-  conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -t v -a
+  git cliff -o CHANGELOG.md
 
   prettier --write "CHANGELOG.md"
 }
@@ -215,4 +221,24 @@ _generate_changelog_url() {
   date=$(grep "## \[${tag}\]" CHANGELOG.md | sed -n "s/.*${tag}) //p" | sed s/\)// | sed s/\(//)
 
   echo "https://github.com/otto-de/gitactionboard/blob/main/CHANGELOG.md#${tag//./}-${date}"
+}
+
+_frontend_build_for_github_pages(){
+  pushd "frontend" >/dev/null || exit
+    _ensure_nvm
+    npm install
+    VITE_PROXY_TARGET="https://otto-de.github.io/gitactionboard/apis" BASE_PATH="/gitactionboard" npm run build
+    for route in $(jq -r '.routes[] | select(.method == "get") | @base64' mock-data/data.json); do
+      local endpoint
+      local content
+      endpoint=$(echo "${route}" | base64 --decode | jq -r ".endpoint")
+      content=$(echo "${route}" | base64 --decode | jq -r ".responses[0].body")
+      mkdir -p "$(dirname dist/apis/"${endpoint}")"
+      if [[ ${endpoint} == "config" ]]; then
+        echo "${content}" | jq -r '.availableAuths = []' > "dist/apis/${endpoint}"
+      else
+        echo "${content}" > "dist/apis/${endpoint}"
+      fi
+    done
+  popd >/dev/null || exit
 }
