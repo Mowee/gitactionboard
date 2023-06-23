@@ -1,12 +1,12 @@
 plugins {
     id "java"
     id "idea"
-    id "org.springframework.boot" version "3.1.0"
+    id "org.springframework.boot" version "3.1.1"
     id "io.spring.dependency-management" version "1.1.0"
     id "io.freefair.lombok" version "8.0.1"
     id "com.github.spotbugs" version "5.0.14"
     id "com.github.ben-manes.versions" version "0.47.0"
-    id "org.owasp.dependencycheck" version "8.2.1"
+    id "org.owasp.dependencycheck" version "8.3.1"
     id "com.diffplug.spotless" version "6.19.0"
     id "info.solidsoft.pitest" version "1.9.11"
 }
@@ -19,7 +19,7 @@ spotless {
 
 ext {
     javaUuidGeneratorVersion = "4.2.0"
-    logstashVersion = "7.3"
+    logstashVersion = "7.4"
     caffeineVersion = "3.1.6"
     mockServerVersion = "5.15.0"
     archUnitVersion = "1.0.1"
